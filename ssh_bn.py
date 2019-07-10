@@ -1,7 +1,7 @@
 import optparse
 import pxssh
 
-Class client:
+class client:
     def __init__(self, host, user, password):
         self.host = host
         self.user = user
