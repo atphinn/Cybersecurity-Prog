@@ -8,7 +8,7 @@ def anonLogin(hostname):
             'FTP Anonymous login succeeded.')
         ftp.quit()
         return True
-    except Exception, e:
+    except Exception as e:
         print('\n[-]' + str(hostname) +\
             'FTP Anonymous login failed')
         return False
