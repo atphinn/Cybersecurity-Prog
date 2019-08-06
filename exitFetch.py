@@ -1,98 +1,70 @@
-import sqlite3
+import urllib.request
 import optparse
-import os
+from urllib.parse import urlsplit
+from os.path import basename
+from bs4 import BeautifulSoup
+from PIL import Image
+from PIL.ExifTags import TAGS
 
-def printProfile(skypeDB):
-    conn = sqlite3.connect(skypeDB)
-    c = conn.cursor()
-    c.execute("SELECT fullname,skypename,city,country,\
-        datetime(profile_timestamp,'unixepoch') FROM Accounts;")
+def findImages(url):
+    print("[+] Finding images on" + url)
 
-    for row in c:
-        print('[*] -- Found Account')
-        print('[+] User: ' + str(row[0]))
-        print('[+] Skype Username: '+str(row[1]))
-        print('[+] Location: ' + str(row[2]) + ',' + str(row[3]))
-        print('[+] Profile Date: ' +str(row[4]))
+    urlContent = urllib.request.urlopen(url).read()
+    soup = BeautifulSoup(urlContent)
+    imgTags = soup.findAll('img')
+    return imgTags
 
-def printContacts(skypeDB):
-    conn = sqlite3.connect(skypeDB)
-    c = conn.cursor()
-    c.execute("SELECT displayname, skypename, city, country,\
-        phone_mobile, birthday FROM contacts")
+
+def downloadImage(imgTag):
+    try:
+        print('[+] Downloading image....')
+        imgSrc = imgTag['src']
+        imgContent = urllib.request.urlopen(imgSrc).read()
+        imgFileName = basename(urlsplit(imgSrc)[2])
+        imgFile = open(imgFileName, 'wb')
+        imgFile.write(imgContent)
+        imgFile.close()
+        return imgFileName
     
-    for row in c:
-        print('[*] -- Found Contact')
-        print('[+] User: ' + str(row[0]))
-        print('[+] Skype Username: '+str(row[1]))
+    except:
+        return ""
 
-        if str(row[2]) !="" and str(row[2]) !='None':
-            print('[+] Location: ' + str(row[2]) + ',' + str(row[3]))
-        
-        if str(row[4]) != 'None':
-            print('[+] Mobile Number: ' +str(row[4]))
+def testForExif(imgFileName):
+    try:
+        exifData = {}
+        imgFile = Image.open(imgFileName)
+        info = imgFile._getexif()
+        if info:
+            for(tag,value) in info.items():
+                decoded = TAGS.get(tag,tag)
+                exifData[decoded] = value
+            exifGPS = exifData['GPSInfo']
 
-        if str(row[5]) != 'None':
-            print('[+] Birthday: ' +str(row[5]))
-
-def printCallLog(skypeDB):
-    conn = sqlite3.connect(skypeDB)
-    c = conn.cursor()
-    c.execute("SELECT datetime(begin_timestamp, 'unixepoch),\
-        identity FROM calls, conversations WHERE \
-            calls.conv_dbid = conversations.id;"
-            )
-
-    print('\n[*] --Found Calls --')
-    for row in c:
-        print('[+] Time:' + str(row[0])+\
-            'Partner:'+ str(row[1])
-            )
-
-def printMessages(skypeDB):
-    conn = sqlite3.connect(skypeDB)
-    c = conn.cursor()
-    c.execute("SELECT datetime(timestammp, 'unixepoch'),\
-        dialog_partner, author, body_xml FROM Messages;")
-
-    print('\n[*] --Found Messages --')
-    for row in c:
-        try:
-            if 'partlist' not in str(row):
-                if str(row[1]) != str(row[2]):
-                    msgDirection = 'To' + str(row[1]) + ':'
-                else:
-                    msgDirection = 'From' + str(row[2]) + ':'
-                print('Time' + str(row[0]) + ''\
-                    +msgDirection + str(row[3]))
-        except:
-            pass
+            if exifGPS:
+              print('[*]' + imgFileName + 'contains GPS MetaData')
+    except:
+          pass
 
 def main():
-    parser = optparse.OptionParser("usage%prog"+\
-        "-p <skype profile path>")
-    
-    parser.add_option('-p', dest='pathName', type='string',\
-        help='specify skype profile path')
-    (options, args) = parser.parse_args()
-    pathName = options.pathName
+    parser = optparse.OptionParser('usage%prog' +\
+    '-u <target url>')
 
-    if pathName == None:
+    parser.add_option('-u', dest='url', type='string',
+    help='specify url address')
+
+    (options, args) = parser.parse_args()
+    url = options.url
+
+    if url == None:
         print(parser.usage)
         exit(0)
-    elif os.path.isdir(pathName) == False:
-        print('[!] Path does not exsist:' + pathName)
-        exit(0)
+
     else:
-        skypeDB = os.path.join(pathName, 'main.db')
-        if os.path.isfile(skypeDB):
-            printProfile(skypeDB)
-            printContacts(skypeDB)
-            printCallLog(skypeDB)
-            printMessages(skypeDB)
-        else:
-            print('[!]Skype Database' +\
-                'does not exist: '+skypeDB)
- 
+        imgTags = findImages(url)
+
+    for imgTag in imgTags:
+        imgFileName = downloadImage(imgTag)
+        testForExif(imgFileName)
+
 if __name__ == '__main__':
     main()
