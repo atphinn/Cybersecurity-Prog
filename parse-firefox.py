@@ -40,9 +40,9 @@ def printHistory(placesDB):
                 c.execute("SELECT url, datetime(visit_date/1000000,\
                         'unixepoch') FROM moz_places, moz_places.id==\
                                 moz_historyvisits.place_id;")
-                
+
                 print('\n[*] --Found History--')
-                
+
                 for row in c:
                         url = str(row[0])
                         date = str(row[1])
@@ -57,12 +57,12 @@ def printGoogle(placesDB):
         conn = sqlite3.connect(placesDB)
         c = conn.cursor()
         c.execute("SELECT url,datetime(visit_date/1000000, \
-                'unixepoch') FROM moz_places.id ==\
-                        WHERE visit_count > 0 and moz_places.is ==\
+                'unixepoch') FROM moz_places, moz_historyvisits\
+                        WHERE visit_count > 0 and moz_places.id==\
                                 moz_historyvisits.place_id;")
-        
+
         print("\n[*] --Found Google--")
-        
+
         for row in c:
                 url = str(row[0])
                 date = str(row[1])
@@ -77,10 +77,10 @@ def printGoogle(placesDB):
 def main():
         parser = optparse.OptionParser("Usage%prog" +\
                 "-p <firefox profile path> ")
-        
+
         parser.add_option('-p', dest='pathName', type='string',\
                 help='specify skype profile path')
-        
+
         (options, args) = parser.parse_args()
 
         pathName = options.pathName
@@ -98,7 +98,7 @@ def main():
                         printDownloads(downloadDB)
                 else:
                         print('[!] Downloads Db does not exsist: '+downloadDB)
-                
+
                 cookiesDB = os.path.join(pathName, 'cookies.sqlite')
 
                 if os.path.isfile(cookiesDB):
@@ -106,7 +106,7 @@ def main():
                         printCookies(cookiesDB)
                 else:
                          print('[!] Cookies Db does not exsist: '+cookiesDB)
-                
+
                 placesDB = os.path.join(pathName, 'places.sqlite')
 
                 if os.path.isfile(placesDB):
