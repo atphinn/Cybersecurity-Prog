@@ -1,10 +1,8 @@
-import parser
-#import dpkt
-import pylint.test.regrtest_data.package
+import dpkt
 import socket
 import pygeoip
 import optparse
-
+gi = pygeoip.GeoIP('/opt/GeoIP/Geo.dat')
 def retKML(ip):
     rec = gi.record_by_name(ip)
     try:
@@ -20,7 +18,7 @@ def retKML(ip):
     
         return kml
     
-    except Exception as e:
+    except:
         return '' 
 
 def plotIPs(pcap):
@@ -34,7 +32,7 @@ def plotIPs(pcap):
             srcKML = retKML(src)
             dst = socket.inet_ntoa(ip.dst)
             dstKML = retKML(dst)
-        
+            kmlPts = kmlPts + srcKML + dstKML
         except:
             pass
         
@@ -42,7 +40,7 @@ def plotIPs(pcap):
 
 def main():
     parser = optparse.OptionParser('usage%prog -p <pcap file>')
-    paser.add_option('-p', dest='pcapFile', typer='string',\
+    parser.add_option('-p', dest='pcapFile', type='string',\
         help='specify pcap filename')
     
     (options, args) = parser.parse_args()
@@ -50,7 +48,9 @@ def main():
     if options.pcapFile == None:
         print (parser.usage)
         exit(0)
-    f = open('geptest.pcap')
+    
+    pcapFile = options.pcapFile
+    f = open(pcapFile, encoding="ISO-8859-1")
     pcap = dpkt.pcap.Reader(f)
 
     kmlheader = '<?xml version="1.0" encoding="UTF-8"?>\
@@ -62,4 +62,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
