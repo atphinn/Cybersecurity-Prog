@@ -28,9 +28,9 @@ def testTTL(pkt):
         if pkt.haslayer(IP):
             ipsrc = pkt.getlayer(IP).src
             ttl = str(pkt.ttl)
-            print("[+]PKT recived from:" +ipsrc+"with TTL"\
-                + ttl)
-    
+            # print("[+]PKT recived from:" +ipsrc+"with TTL"\
+            #     + ttl)
+            checkTTL(ipsrc,ttl)
     except:
         pass
 
